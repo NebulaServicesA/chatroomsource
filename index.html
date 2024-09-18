@@ -52,6 +52,21 @@
             text-align: center;
             padding: 20px;
         }
+        #username-input {
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 80%;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        #start-chat {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -59,7 +74,7 @@
         <div id="username-container">
             <h2>Enter your username:</h2>
             <input type="text" id="username-input" placeholder="Username">
-            <button id="join-chat">Join Chat</button>
+            <button id="start-chat">Start Chat</button>
         </div>
         <div id="chat-messages" style="display: none;"></div>
         <form id="chat-form" style="display: none;">
@@ -71,20 +86,22 @@
     <script>
         const usernameContainer = document.getElementById('username-container');
         const usernameInput = document.getElementById('username-input');
-        const joinChatButton = document.getElementById('join-chat');
+        const startChatButton = document.getElementById('start-chat');
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         let username = '';
         let ws;
 
-        joinChatButton.addEventListener('click', () => {
+        startChatButton.addEventListener('click', () => {
             username = usernameInput.value.trim();
             if (username) {
                 usernameContainer.style.display = 'none';
                 chatMessages.style.display = 'block';
                 chatForm.style.display = 'flex';
                 connectWebSocket();
+            } else {
+                alert('Please enter a username');
             }
         });
 
@@ -128,8 +145,3 @@
     </script>
 </body>
 </html>
-
-index.html
-Now, let's create the Python script to run the WebSocket server and handle the chat functionality:
-
-import a
