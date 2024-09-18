@@ -22,6 +22,7 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             overflow: hidden;
+            position: relative;
         }
         #chat-messages {
             height: 400px;
@@ -67,10 +68,57 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        #owner-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .dropdown-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="chat-container">
+        <div id="owner-panel" style="display: none;">
+            <div class="dropdown">
+                <button class="dropdown-button">Owner Panel</button>
+                <div class="dropdown-content">
+                    <a href="#" id="clear-chat">Clear Chat</a>
+                    <a href="#" id="repeat-send">Repeat Send</a>
+                    <a href="#" id="ban-user">Ban User</a>
+                </div>
+            </div>
+        </div>
         <div id="username-container">
             <h2>Enter your username:</h2>
             <input type="text" id="username-input" placeholder="Username">
@@ -90,6 +138,10 @@
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
+        const ownerPanel = document.getElementById('owner-panel');
+        const clearChatButton = document.getElementById('clear-chat');
+        const repeatSendButton = document.getElementById('repeat-send');
+        const banUserButton = document.getElementById('ban-user');
         let username = '';
         let ws;
 
@@ -99,6 +151,9 @@
                 usernameContainer.style.display = 'none';
                 chatMessages.style.display = 'block';
                 chatForm.style.display = 'flex';
+                if (username === 'cool69420') {
+                    ownerPanel.style.display = 'block';
+                }
                 connectWebSocket();
             } else {
                 alert('Please enter a username');
@@ -119,6 +174,13 @@
                     displayMessage(data.username, data.message);
                 } else if (data.type === 'history') {
                     data.messages.forEach(msg => displayMessage(msg.username, msg.message));
+                } else if (data.type === 'clear') {
+                    clearChat();
+                } else if (data.type === 'ban') {
+                    if (data.bannedUser === username) {
+                        alert('You have been banned from the chat.');
+                        ws.close();
+                    }
                 }
             };
 
@@ -134,12 +196,38 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        function clearChat() {
+            chatMessages.innerHTML = '';
+        }
+
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const message = messageInput.value.trim();
             if (message) {
                 ws.send(JSON.stringify({type: 'message', username: username, message: message}));
                 messageInput.value = '';
+            }
+        });
+
+        // Owner panel functionality
+        clearChatButton.addEventListener('click', () => {
+            ws.send(JSON.stringify({type: 'clear'}));
+        });
+
+        repeatSendButton.addEventListener('click', () => {
+            const message = prompt('Enter the message to repeat:');
+            const count = parseInt(prompt('Enter the number of times to repeat:'));
+            if (message && count) {
+                for (let i = 0; i < count; i++) {
+                    ws.send(JSON.stringify({type: 'message', username: username, message: message}));
+                }
+            }
+        });
+
+        banUserButton.addEventListener('click', () => {
+            const userToBan = prompt('Enter the username to ban:');
+            if (userToBan) {
+                ws.send(JSON.stringify({type: 'ban', username: userToBan}));
             }
         });
     </script>
