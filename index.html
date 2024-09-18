@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat-container { width: 100%; max-width: 800px; margin: 0 auto; }
+        #message-list { list-style-type: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; }
+        #message-list li { padding: 5px; border-bottom: 1px solid #ddd; }
+        #message-input { width: calc(100% - 100px); }
+        #send-button { width: 100px; }
+        #login-container { text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="login-container">
+        <h1>Welcome to Global Chat</h1>
+        <input type="text" id="username" placeholder="Enter your username">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <h2>Global Chat</h2>
+        <ul id="message-list"></ul>
+        <input type="text" id="message-input" placeholder="Type your message here">
+        <button id="send-button" onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        const loginContainer = document.getElementById('login-container');
+        const chatContainer = document.getElementById('chat-container');
+        const messageList = document.getElementById('message-list');
+        const messageInput = document.getElementById('message-input');
+        const usernameInput = document.getElementById('username');
+
+        function login() {
+            const username = usernameInput.value.trim();
+            if (username) {
+                auth.signInAnonymously().then(() => {
+                    localStorage.setItem('username', username);
+                    loginContainer.style.display = 'none';
+                    chatContainer.style.display = 'block';
+                    loadMessages();
+                }).catch((error) => {
+                    console.error('Login Error:', error);
+                });
+            }
+        }
+
+        function sendMessage() {
+            const username = localStorage.getItem('username');
+            const message = messageInput.value.trim();
+            if (message) {
+                database.ref('messages').push({
+                    username: username,
+                    message: message,
+                    timestamp: new Date().toISOString()
+                });
+                messageInput.value = '';
+            }
+        }
+
+        function loadMessages() {
+            database.ref('messages').on('child_added', (snapshot) => {
+                const data = snapshot.val();
+                const li = document.createElement('li');
+                li.textContent = `${data.username}: ${data.message}`;
+                messageList.appendChild(li);
+                messageList.scrollTop = messageList.scrollHeight; // Scroll to the bottom
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const username = localStorage.getItem('username');
+            if (username) {
+                loginContainer.style.display = 'none';
+                chatContainer.style.display = 'block';
+                loadMessages();
+            }
+        });
+    </script>
+</body>
+</html>
