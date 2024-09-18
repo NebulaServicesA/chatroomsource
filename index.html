@@ -15,10 +15,9 @@
     </style>
 </head>
 <body>
-    <div id="login-container">
+    <div id="login-container" style="display: none;">
         <h1>Welcome to Global Chat</h1>
-        <input type="text" id="username" placeholder="Enter your username">
-        <button onclick="login()">Login</button>
+        <button onclick="startChat()">Start Chat</button>
     </div>
 
     <div id="chat-container" style="display: none;">
@@ -47,27 +46,26 @@
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
         const database = firebase.database();
 
-        const loginContainer = document.getElementById('login-container');
         const chatContainer = document.getElementById('chat-container');
         const messageList = document.getElementById('message-list');
         const messageInput = document.getElementById('message-input');
-        const usernameInput = document.getElementById('username');
 
-        function login() {
-            const username = usernameInput.value.trim();
-            if (username) {
-                auth.signInAnonymously().then(() => {
-                    localStorage.setItem('username', username);
-                    loginContainer.style.display = 'none';
-                    chatContainer.style.display = 'block';
-                    loadMessages();
-                }).catch((error) => {
-                    console.error('Login Error:', error);
-                });
-            }
+        function startChat() {
+            const username = generateRandomUsername();
+            localStorage.setItem('username', username);
+            document.getElementById('login-container').style.display = 'none';
+            chatContainer.style.display = 'block';
+            loadMessages();
+        }
+
+        function generateRandomUsername() {
+            const adjectives = ['Cool', 'Awesome', 'Quick', 'Brave', 'Smart'];
+            const nouns = ['Cat', 'Dog', 'Lion', 'Tiger', 'Bear'];
+            const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+            return randomAdj + randomNoun + Math.floor(Math.random() * 1000);
         }
 
         function sendMessage() {
@@ -96,9 +94,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             const username = localStorage.getItem('username');
             if (username) {
-                loginContainer.style.display = 'none';
+                document.getElementById('login-container').style.display = 'none';
                 chatContainer.style.display = 'block';
                 loadMessages();
+            } else {
+                document.getElementById('login-container').style.display = 'block';
             }
         });
     </script>
