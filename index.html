@@ -41,6 +41,10 @@
             font-size: 16px;
             margin-bottom: 20px;
         }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +59,8 @@
             <input id="chat-message" class="message-input" placeholder="Type a message...">
             <button id="send-message" class="cool-button">Send</button>
         </div>
+
+        <p id="status-message" class="error" style="display:none;"></p>
     </div>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
@@ -64,26 +70,34 @@
         const chatSection = document.getElementById('chat-section');
         const startChatButton = document.getElementById('start-chat');
         const sendMessageButton = document.getElementById('send-message');
+        const statusMessage = document.getElementById('status-message');
         let chatRoom = '';
 
+        // Start chat button clicked
         startChatButton.addEventListener('click', () => {
             const username = document.getElementById('username').value;
             if (username) {
                 socket.emit('join_chat', username);
                 startChatButton.style.display = 'none';
-                chatSection.style.display = 'block';
+                statusMessage.style.display = 'none';
             }
         });
 
+        // Waiting for another user to connect
         socket.on('waiting', (msg) => {
-            chatBox.innerHTML = `<p>${msg}</p>`;
+            statusMessage.textContent = msg;
+            statusMessage.style.display = 'block';
         });
 
+        // When chat starts
         socket.on('start_chat', (room) => {
             chatRoom = room;
+            statusMessage.style.display = 'none';
+            chatSection.style.display = 'block';
             chatBox.innerHTML = `<p>You're now chatting!</p>`;
         });
 
+        // Handle sending messages
         sendMessageButton.addEventListener('click', () => {
             const message = document.getElementById('chat-message').value;
             if (message) {
@@ -93,8 +107,17 @@
             }
         });
 
+        // Receive message from the other user
         socket.on('message', (msg) => {
             chatBox.innerHTML += `<p>Stranger: ${msg}</p>`;
+        });
+
+        // Handle connection error (if there is no other user to connect with)
+        socket.on('error_connect', () => {
+            statusMessage.textContent = 'Error: Not enough users to connect.';
+            statusMessage.style.display = 'block';
+            startChatButton.style.display = 'block';  // Allow the user to try again
+            chatSection.style.display = 'none';
         });
     </script>
 </body>
