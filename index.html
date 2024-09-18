@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Chat</title>
+    <title>Open Chat with Attachments</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -40,7 +40,7 @@
             border: 1px solid #e0e0e0;
             border-radius: 5px;
         }
-        #send-button {
+        #send-button, #file-input-label {
             margin-left: 10px;
             padding: 10px 20px;
             background-color: #4CAF50;
@@ -48,6 +48,9 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+        }
+        #file-input {
+            display: none;
         }
         #start-chat {
             padding: 10px 20px;
@@ -66,41 +69,39 @@
             font-size: 14px;
             color: #666;
         }
-        #status {
-            text-align: center;
-            margin-top: 20px;
-            font-weight: bold;
+        .message-image {
+            max-width: 200px;
+            max-height: 200px;
+        }
+        .message-file {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #333;
         }
     </style>
 </head>
 <body>
     <div id="chat-container">
-        <button id="start-chat">Start Random Chat</button>
-        <div id="status"></div>
-        <div id="chat-messages" style="display: none;"></div>
-        <form id="chat-form" style="display: none;">
+        <div id="chat-messages"></div>
+        <form id="chat-form">
             <input type="text" id="message-input" placeholder="Type your message...">
             <button type="submit" id="send-button">Send</button>
+            <label for="file-input" id="file-input-label">Attach</label>
+            <input type="file" id="file-input" accept="image/*,application/pdf">
         </form>
         <div id="online-count">Online: 0</div>
     </div>
 
     <script>
-        const startChatButton = document.getElementById('start-chat');
-        const statusElement = document.getElementById('status');
         const chatMessages = document.getElementById('chat-messages');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
+        const fileInput = document.getElementById('file-input');
         const onlineCountElement = document.getElementById('online-count');
         let ws;
-
-        startChatButton.addEventListener('click', startChat);
-
-        function startChat() {
-            startChatButton.style.display = 'none';
-            statusElement.textContent = 'Connecting...';
-            connectWebSocket();
-        }
 
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8765');
@@ -113,32 +114,39 @@
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'message') {
-                    displayMessage(data.sender, data.message);
-                } else if (data.type === 'status') {
-                    statusElement.textContent = data.message;
-                    if (data.message === 'Connected to a stranger. Start chatting!') {
-                        chatMessages.style.display = 'block';
-                        chatForm.style.display = 'flex';
-                    }
+                    displayMessage(data.sender, data.message, data.attachment);
                 } else if (data.type === 'onlineCount') {
                     updateOnlineCount(data.count);
-                } else if (data.type === 'disconnected') {
-                    statusElement.textContent = 'Your chat partner has disconnected. Click "Start Random Chat" to find a new partner.';
-                    chatMessages.style.display = 'none';
-                    chatForm.style.display = 'none';
-                    startChatButton.style.display = 'block';
                 }
             };
 
             ws.onclose = () => {
                 console.log('Disconnected from WebSocket');
-                statusElement.textContent = 'Disconnected. Please refresh the page to try again.';
+                setTimeout(connectWebSocket, 5000);
             };
         }
 
-        function displayMessage(sender, message) {
-            const messageElement = document.createElement('p');
-            messageElement.textContent = `${sender}: ${message}`;
+        function displayMessage(sender, message, attachment) {
+            const messageElement = document.createElement('div');
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            
+            if (attachment) {
+                if (attachment.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = attachment.data;
+                    img.alt = 'Attached Image';
+                    img.className = 'message-image';
+                    messageElement.appendChild(img);
+                } else {
+                    const link = document.createElement('a');
+                    link.href = attachment.data;
+                    link.download = attachment.name;
+                    link.className = 'message-file';
+                    link.textContent = `Download ${attachment.name}`;
+                    messageElement.appendChild(link);
+                }
+            }
+
             chatMessages.appendChild(messageElement);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -156,6 +164,25 @@
                 messageInput.value = '';
             }
         });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const attachment = {
+                        name: file.name,
+                        type: file.type,
+                        data: event.target.result
+                    };
+                    ws.send(JSON.stringify({type: 'message', message: `Sent an attachment: ${file.name}`, attachment: attachment}));
+                    displayMessage('You', `Sent an attachment: ${file.name}`, attachment);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        connectWebSocket();
     </script>
 </body>
 </html>
